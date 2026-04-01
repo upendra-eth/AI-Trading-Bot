@@ -16,12 +16,90 @@ document.addEventListener('DOMContentLoaded', () => {
     const formatCurr = (val) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(val);
     const formatPct = (val) => (val > 0 ? '+' : '') + val.toFixed(2) + '%';
 
+    // -----------------------------------------------------------------------------
+    // API configuration
+    // -----------------------------------------------------------------------------
+    // GitHub Pages hosts only static files, so /api/* endpoints will 404.
+    // If you have the FastAPI backend running elsewhere, set:
+    //   localStorage.setItem('AIQUANT_API_BASE_URL', 'http://127.0.0.1:8000')
+    // then refresh.
+    const IS_GITHUB_PAGES = window.location.hostname.endsWith('github.io');
+    const API_BASE_URL = (localStorage.getItem('AIQUANT_API_BASE_URL') || '').trim();
+    const BACKEND_ENABLED = !IS_GITHUB_PAGES || API_BASE_URL.length > 0;
+
+    function apiUrl(path) {
+        if (!BACKEND_ENABLED) return null;
+        if (!path.startsWith('/')) path = '/' + path;
+        const base = API_BASE_URL.length > 0 ? API_BASE_URL.replace(/\/+$/, '') : '';
+        return `${base}${path}`;
+    }
+
+    function ensureBackendOrAlert(featureName) {
+        if (BACKEND_ENABLED) return true;
+        alert(
+            `${featureName} needs the FastAPI backend.\n\n` +
+            `You're viewing the static GitHub Pages demo, so /api/* is unavailable.\n\n` +
+            `Run locally: python app.py\n` +
+            `Then (optional) in browser console:\n` +
+            `localStorage.setItem('AIQUANT_API_BASE_URL','http://127.0.0.1:8000')\n` +
+            `and refresh.`
+        );
+        return false;
+    }
+
+    async function fetchJson(path, options) {
+        const url = apiUrl(path);
+        if (!url) throw new Error('Backend not enabled');
+
+        const res = await fetch(url, options);
+        const ct = (res.headers.get('content-type') || '').toLowerCase();
+
+        if (!res.ok) {
+            // Avoid JSON parse errors when server returns HTML error pages
+            const text = await res.text().catch(() => '');
+            throw new Error(`HTTP ${res.status} ${res.statusText}${text ? `: ${text.slice(0, 200)}` : ''}`);
+        }
+
+        if (!ct.includes('application/json')) {
+            const text = await res.text().catch(() => '');
+            throw new Error(`Expected JSON but got ${ct || 'unknown content-type'}${text ? `: ${text.slice(0, 200)}` : ''}`);
+        }
+
+        return await res.json();
+    }
+
+    function injectStaticNotice() {
+        if (BACKEND_ENABLED) return;
+        const container = document.querySelector('.content');
+        if (!container) return;
+
+        const notice = document.createElement('div');
+        notice.className = 'panel glass';
+        notice.style.marginBottom = '16px';
+        notice.innerHTML = `
+            <h3 style="margin-bottom:6px;">Static Demo Mode</h3>
+            <div style="color:var(--text-muted); font-size:13px; line-height:1.6;">
+                This GitHub Pages site hosts only the UI. API features (portfolio, scan, paper trading, backtest) require the FastAPI backend.
+                <br/>
+                To connect a running backend, open DevTools and set:
+                <br/>
+                <code style="display:inline-block; margin-top:8px; padding:6px 10px; background:rgba(0,0,0,0.25); border:1px solid var(--border); border-radius:8px;">
+                    localStorage.setItem('AIQUANT_API_BASE_URL','http://127.0.0.1:8000')
+                </code>
+                <br/>
+                Then refresh the page.
+            </div>
+        `;
+        container.prepend(notice);
+    }
+
+    injectStaticNotice();
+
     // Fetch Portfolio Data
     async function loadPortfolio() {
         try {
-            const res = await fetch('/api/portfolio');
-            if (!res.ok) return;
-            const data = await res.json();
+            if (!BACKEND_ENABLED) return;
+            const data = await fetchJson('/api/portfolio');
 
             document.getElementById('balance-value').textContent = formatCurr(data.balance);
 
@@ -96,6 +174,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Backtest function
     document.getElementById('run-bt-btn').addEventListener('click', async () => {
+        if (!ensureBackendOrAlert('Backtest')) return;
         const symbol = document.getElementById('bt-symbol').value;
         const start = document.getElementById('bt-start').value;
         const end = document.getElementById('bt-end').value;
@@ -106,12 +185,11 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('chart-panel').classList.add('hidden');
 
         try {
-            const res = await fetch('/api/backtest', {
+            const data = await fetchJson('/api/backtest', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ symbol, start_date: start, end_date: end, interval: interval })
             });
-            const data = await res.json();
 
             document.getElementById('bt-loading').classList.add('hidden');
 
@@ -228,6 +306,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Scanner Logic
     document.getElementById('refresh-scan-btn').addEventListener('click', async () => {
+        if (!ensureBackendOrAlert('Market scan')) return;
         const btn = document.getElementById('refresh-scan-btn');
         const text = document.getElementById('scan-btn-text');
         const loading = document.getElementById('scan-loading');
@@ -239,8 +318,7 @@ document.addEventListener('DOMContentLoaded', () => {
         container.innerHTML = '';
 
         try {
-            const res = await fetch('/api/scan');
-            const data = await res.json();
+            const data = await fetchJson('/api/scan');
 
             loading.classList.add('hidden');
             btn.disabled = false;
@@ -351,12 +429,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function loadPaperStatus() {
         try {
+            if (!BACKEND_ENABLED) return;
             const [statusRes, portRes] = await Promise.all([
-                fetch('/api/paper-trading/status'),
-                fetch('/api/portfolio')
+                fetchJson('/api/paper-trading/status'),
+                fetchJson('/api/portfolio')
             ]);
-            const status = await statusRes.json();
-            const port = await portRes.json();
+            const status = statusRes;
+            const port = portRes;
 
             updatePaperStatusBadge(status.enabled, status.running);
 
@@ -441,27 +520,29 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     window.startPaperEngine = async function() {
+        if (!ensureBackendOrAlert('Paper trading')) return;
         const interval = document.getElementById('pt-interval').value;
         try {
-            await fetch(`/api/paper-trading/start?interval_minutes=${interval}`, { method: 'POST' });
+            await fetchJson(`/api/paper-trading/start?interval_minutes=${interval}`, { method: 'POST' });
             loadPaperStatus();
             if (!paperStatusPoller) paperStatusPoller = setInterval(loadPaperStatus, 10000);
         } catch (e) { alert('Failed to start engine: ' + e.message); }
     };
 
     window.stopPaperEngine = async function() {
+        if (!ensureBackendOrAlert('Paper trading')) return;
         try {
-            await fetch('/api/paper-trading/stop', { method: 'POST' });
+            await fetchJson('/api/paper-trading/stop', { method: 'POST' });
             loadPaperStatus();
         } catch (e) { alert('Failed to stop engine: ' + e.message); }
     };
 
     window.runPaperNow = async function() {
+        if (!ensureBackendOrAlert('Paper trading')) return;
         const logEl = document.getElementById('pt-log');
         logEl.innerHTML = '<div style="color:#60a5fa;">⚡ Running manual cycle... please wait (30–90 seconds).</div>';
         try {
-            const res = await fetch('/api/paper-trading/run-now', { method: 'POST' });
-            const data = await res.json();
+            const data = await fetchJson('/api/paper-trading/run-now', { method: 'POST' });
             if (data.cycle_log) {
                 logEl.innerHTML = data.cycle_log.map(line => {
                     let color = '#94a3b8';
@@ -478,9 +559,10 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     window.resetPortfolio = async function() {
+        if (!ensureBackendOrAlert('Paper trading')) return;
         if (!confirm('Reset paper portfolio to ₹1,00,000? This will close all open positions.')) return;
         try {
-            await fetch('/api/paper-trading/reset', { method: 'POST' });
+            await fetchJson('/api/paper-trading/reset', { method: 'POST' });
             loadPaperStatus();
         } catch (e) { alert('Reset failed: ' + e.message); }
     };

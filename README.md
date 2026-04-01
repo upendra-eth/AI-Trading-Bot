@@ -2,6 +2,10 @@
 
 A local paper-trading system for Indian stocks using an ensemble of XGBoost, LSTM, and FinBERT with a FastAPI backend and a static dashboard frontend.
 
+## Live Demo (UI)
+
+- `https://upendra-eth.github.io/AI-Trading-Bot/`
+
 ## Features
 
 - Live scanner for NSE watchlist symbols
@@ -33,14 +37,14 @@ A local paper-trading system for Indian stocks using an ensemble of XGBoost, LST
 ## Local Setup
 
 1. Create and activate a virtual environment:
-   - `python3 -m venv venv`
-   - `source venv/bin/activate`
+  - `python3 -m venv venv`
+  - `source venv/bin/activate`
 2. Install dependencies:
-   - `pip install -r requirements.txt`
+  - `pip install -r requirements.txt`
 3. Run the API server:
-   - `python app.py`
+  - `python app.py`
 4. Open:
-   - `http://127.0.0.1:8000`
+  - `http://127.0.0.1:8000`
 
 ## Tests
 
@@ -56,9 +60,10 @@ After pushing:
 2. Ensure Source is set to **GitHub Actions**.
 3. Wait for the "Deploy static site to Pages" workflow to complete.
 4. Your site will be available at:
-   - `https://upendra-eth.github.io/AI-Trading-Bot/`
+  - `https://upendra-eth.github.io/AI-Trading-Bot/`
 
 ## Notes
 
 - `venv/`, local DB files, and cache artifacts are ignored via `.gitignore`.
 - The GitHub Pages deployment serves only static files. FastAPI endpoints are not hosted on GitHub Pages.
+

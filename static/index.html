@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AiQuant - Advanced Trading</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/style.css?v=5">
+    <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
+</head>
+
+<body>
+    <div class="app-container">
+        <aside class="sidebar glass">
+            <div class="logo">
+                <span class="logo-accent">AI</span>Quant
+            </div>
+            <nav>
+                <button class="nav-btn active" data-tab="dashboard">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="3" width="7" height="7"></rect>
+                        <rect x="14" y="3" width="7" height="7"></rect>
+                        <rect x="14" y="14" width="7" height="7"></rect>
+                        <rect x="3" y="14" width="7" height="7"></rect>
+                    </svg>
+                    Portfolio
+                </button>
+                <button class="nav-btn" data-tab="scanner">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                    Live Scanner
+                </button>
+                <button class="nav-btn" data-tab="paper-trading"><i class="icon">📈</i> Paper Trading</button>
+                <button class="nav-btn" data-tab="backtest"><i class="icon">📈</i> Backtesting</button>
+            </nav>
+        </aside>
+
+        <main class="content">
+            <!-- Dashboard Tab -->
+            <section id="dashboard" class="tab-content active">
+                <header>
+                    <h1>Portfolio Overview</h1>
+                    <p class="subtitle">Real-time paper trading performance</p>
+                </header>
+
+                <div class="summary-cards">
+                    <div class="card glass glow-green">
+                        <h3>Total Balance</h3>
+                        <h2 id="balance-value">₹0.00</h2>
+                    </div>
+                </div>
+
+                <div class="split-view">
+                    <div class="panel glass w-50">
+                        <h3>Active Positions</h3>
+                        <div class="table-container">
+                            <table id="active-trades-table">
+                                <thead>
+                                    <tr>
+                                        <th>Symbol</th>
+                                        <th>Entry Price</th>
+                                        <th>Quantity</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="panel glass w-50">
+                        <h3>Recent Trades</h3>
+                        <div class="table-container">
+                            <table id="recent-trades-table">
+                                <thead>
+                                    <tr>
+                                        <th>Symbol</th>
+                                        <th>Entry</th>
+                                        <th>Exit</th>
+                                        <th>PnL (₹)</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Live Scanner Tab -->
+            <section id="scanner" class="tab-content">
+                <header>
+                    <div style="display: flex; justify-content: space-between; align-items: flex-end;">
+                        <div>
+                            <h1>Live Market Scanner</h1>
+                            <p class="subtitle">Real-time signals from Ensemble AI (XGBoost + LSTM + FinBERT)</p>
+                        </div>
+                        <button id="refresh-scan-btn" class="primary-btn">
+                            <span id="scan-btn-text">Run Scan Now</span>
+                        </button>
+                    </div>
+                </header>
+
+                <div id="scan-loading" class="hidden">Running deep learning models & NLP analysis...</div>
+
+                <div id="scan-results" class="split-view">
+                    <!-- Scanner cards will be rendered here -->
+                </div>
+            </section>
+
+            <!-- Backtesting Tab -->
+            <section id="backtest" class="tab-content">
+                <header>
+                    <h1>Historical Engine</h1>
+                    <p class="subtitle">Evaluate ensemble model performance linearly.</p>
+                </header>
+
+                <div class="controls glass">
+                    <div class="input-group">
+                        <label>Symbol (.NS optional)</label>
+                        <input type="text" id="bt-symbol" value="RELIANCE">
+                    </div>
+                    <div class="input-group">
+                        <label>Start Date</label>
+                        <input type="date" id="bt-start" value="2023-01-01">
+                    </div>
+                    <div class="input-group">
+                        <label>End Date</label>
+                        <input type="date" id="bt-end" value="2024-01-01">
+                    </div>
+                    <div class="input-group">
+                        <label>Interval</label>
+                        <select id="bt-interval" class="input-box"
+                            style="background: rgba(0,0,0,0.2); border: 1px solid var(--border); color: white; padding: 12px; border-radius: 8px;">
+                            <option value="1d">Daily (1d)</option>
+                            <option value="1h">Hourly (1h)</option>
+                            <option value="15m">15 Minutes (15m)</option>
+                        </select>
+                    </div>
+                    <button id="run-bt-btn" class="primary-btn">Compute Strategy</button>
+                </div>
+
+                <div id="bt-loading" class="hidden">Running intensive ML backtest pipeline...</div>
+
+                <div id="bt-results" class="results-grid hidden">
+                    <div class="card glass">
+                        <h3>Total Return</h3>
+                        <h2 id="bt-return" class="metric">-</h2>
+                    </div>
+                    <div class="card glass">
+                        <h3>Win Rate</h3>
+                        <h2 id="bt-winrate" class="metric">-</h2>
+                    </div>
+                    <div class="card glass">
+                        <h3>Executed Trades</h3>
+                        <h2 id="bt-trades" class="metric">-</h2>
+                    </div>
+                </div>
+
+                <div class="panel glass chart-container mt-4 hidden" id="chart-panel">
+                    <h3>Equity Curve (₹)</h3>
+                    <div id="tv-chart" style="width:100%; height:400px; margin-top: 15px;"></div>
+                </div>
+
+                <div class="panel glass mt-4 hidden" id="trade-log-panel">
+                    <h3>Detailed Trade & Signal Log</h3>
+                    <div class="table-container">
+                        <table id="bt-trade-log-table">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Action</th>
+                                    <th>Entry Price</th>
+                                    <th>Exit Price</th>
+                                    <th>PnL</th>
+                                    <th>AI Reasoning</th>
+                                    <th>Signals</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                    <div
+                        style="margin-top: 15px; padding: 15px; background: rgba(0,0,0,0.15); border-radius: 8px; border-left: 3px solid var(--primary);">
+                        <h4 style="color: var(--text-muted); font-size: 13px; text-transform: uppercase;">ℹ️ How the
+                            Engine works</h4>
+                        <p style="font-size: 13px; color: #cbd5e1; line-height: 1.5; margin-top: 8px;">
+                            The AI ensemble requires specific technical patterns.<br>
+                            • <b>XGBoost</b> triggers based on deep historical momentum patterns.<br>
+                            • <b>LSTM</b> searches for time-series reversal potentials over sequences.<br>
+                            • <b>FinBERT Historical Note</b>: Due to API limits, fetching exact breaking news from years
+                            ago is restricted. For historical backtesting, FinBERT simulates market sentiment impacts or
+                            fetches cached data. In the <b>Live Scanner</b>, FinBERT fetches absolute real-time breaking
+                            headlines to calculate exact scores.
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <section id="paper-trading" class="tab-content">
+                <header>
+                    <h1>Paper Trading Engine</h1>
+                    <p class="subtitle">Continuously forward-test strategies on live market data — no real capital at risk.</p>
+                </header>
+
+                <!-- Engine Controls -->
+                <div class="summary-cards" style="margin-bottom: 20px;">
+                    <div class="card glass" style="display:flex; align-items:center; gap:16px; flex-wrap:wrap;">
+                        <span style="font-size:13px; color:var(--text-muted);">Engine Status:</span>
+                        <span id="pt-status-badge" style="padding:4px 14px; border-radius:20px; font-size:13px; font-weight:600; background:rgba(100,116,139,0.2); color:#64748b;">● OFFLINE</span>
+                        <span style="font-size:13px; color:var(--text-muted);">Interval:</span>
+                        <select id="pt-interval" style="background:rgba(0,0,0,0.3); border:1px solid var(--border); color:white; padding:6px 10px; border-radius:6px; font-size:13px;">
+                            <option value="15">Every 15 min</option>
+                            <option value="30" selected>Every 30 min</option>
+                            <option value="60">Every 1 hour</option>
+                            <option value="240">Every 4 hours</option>
+                        </select>
+                        <button id="pt-start-btn" onclick="startPaperEngine()" class="primary-btn" style="padding:8px 18px;">▶ Start Engine</button>
+                        <button id="pt-stop-btn" onclick="stopPaperEngine()" class="primary-btn" style="padding:8px 18px; background:rgba(239,68,68,0.15); color:#ef4444; border:1px solid #ef4444; display:none;">■ Stop Engine</button>
+                        <button onclick="runPaperNow()" class="primary-btn" style="padding:8px 18px; background:rgba(59,130,246,0.15); color:#60a5fa; border:1px solid #3b82f6;">⚡ Run Now</button>
+                        <button onclick="resetPortfolio()" class="primary-btn" style="padding:8px 18px; background:rgba(245,158,11,0.12); color:#f59e0b; border:1px solid #f59e0b;">↺ Reset Capital</button>
+                    </div>
+                </div>
+
+                <!-- Portfolio Metrics -->
+                <div class="summary-cards">
+                    <div class="card glass glow-green">
+                        <h3>Paper Balance</h3>
+                        <h2 id="pt-balance">₹1,00,000</h2>
+                    </div>
+                    <div class="card glass">
+                        <h3>Total PnL</h3>
+                        <h2 id="pt-total-pnl" class="neutral">₹0</h2>
+                    </div>
+                    <div class="card glass">
+                        <h3>Win Rate</h3>
+                        <h2 id="pt-win-rate" class="neutral">—</h2>
+                    </div>
+                    <div class="card glass">
+                        <h3>Closed Trades</h3>
+                        <h2 id="pt-trade-count">0</h2>
+                    </div>
+                </div>
+
+                <!-- Active + Closed Positions -->
+                <div class="split-view" style="margin-top:20px;">
+                    <div class="panel glass w-50">
+                        <h3>Open Positions</h3>
+                        <div class="table-container">
+                            <table id="pt-active-table">
+                                <thead><tr><th>Symbol</th><th>Entry Price</th><th>Qty</th><th>Entry Date</th></tr></thead>
+                                <tbody><tr><td colspan="4" style="text-align:center;color:var(--text-muted);">No open positions</td></tr></tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="panel glass w-50">
+                        <h3>Closed Trades</h3>
+                        <div class="table-container">
+                            <table id="pt-closed-table">
+                                <thead><tr><th>Symbol</th><th>Entry</th><th>Exit</th><th>Qty</th><th>PnL</th></tr></thead>
+                                <tbody><tr><td colspan="5" style="text-align:center;color:var(--text-muted);">No closed trades yet</td></tr></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Execution Log -->
+                <div class="panel glass" style="margin-top:20px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                        <h3>Cycle Execution Log</h3>
+                        <div style="font-size:12px; color:var(--text-muted);">
+                            Last run: <span id="pt-last-run">Never</span> &nbsp;|&nbsp;
+                            Next run: <span id="pt-next-run">—</span>
+                        </div>
+                    </div>
+                    <div id="pt-log" style="background:rgba(0,0,0,0.3); border-radius:8px; padding:14px; font-size:12px; font-family:monospace; line-height:1.8; max-height:300px; overflow-y:auto; color:#94a3b8;">
+                        <div style="color:#64748b;">Engine not started. Press '▶ Start Engine' or '⚡ Run Now'.</div>
+                    </div>
+                </div>
+
+                <!-- How It Works -->
+                <div style="margin-top: 20px; padding: 15px; background: rgba(0,0,0,0.15); border-radius: 8px; border-left: 3px solid var(--primary);">
+                    <h4 style="color: var(--text-muted); font-size: 13px; text-transform: uppercase;">ℹ️ How Paper Trading Works</h4>
+                    <p style="font-size: 13px; color: #cbd5e1; line-height: 1.6; margin-top: 8px;">
+                        The engine runs scheduled cycles, fetching live data from Yahoo Finance, retraining the ML models, and reading real-time news headlines for each stock in the watchlist.<br>
+                        • <b>Position Sizing</b>: Each BUY allocates 20% of available cash. Only one open position per symbol at a time.<br>
+                        • <b>Entry Signal</b>: XGBoost(35%) + LSTM(35%) + FinBERT(30%) ensemble must agree on BUY above threshold.<br>
+                        • <b>Exit Signal</b>: Ensemble must generate SELL signal while a position is OPEN for that symbol.<br>
+                        • <b>Risk</b>: This is completely simulated paper trading. No real money is involved.
+                    </p>
+                </div>
+            </section>
+        </main>
+    </div>
+    <script src="/static/script.js?v=11"></script>
+</body>
+
+</html>

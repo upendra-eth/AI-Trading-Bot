@@ -1,0 +1,39 @@
+# Python cache and compiled files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Test and tool caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# Local databases and runtime files
+*.db
+*.sqlite
+*.sqlite3
+*.log
+*.pid
+
+# OS/editor files
+.DS_Store
+.idea/
+.vscode/
+
+# Build/artifact directories
+build/
+dist/
+*.egg-info/
+
+# ML/model artifacts and checkpoints
+checkpoints/
+models/
+artifacts/
